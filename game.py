@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # --- הגדרות בסיסיות של השירות ---
 # מומלץ למלא את הפרטים האמיתיים שלך כאן
-MANAGER_PHONE = "0500000000" # החלף למספר שלך
+MANAGER_PHONE = "0583289789" # החלף למספר שלך
 EMAIL = "x0583289789@gmail.com" # החלף לאימייל שלך
 # כתובת ה-URL שתקבל אחרי שתעלה את השרת לאוויר
 # כרגע נשאיר את זה ריק, נמלא בהמשך
@@ -47,19 +47,20 @@ def rps_game():
     target = request.json.get('target')
 
     # 1. שלב הרישום הראשוני של השירות
+    # 1. שלב הרישום הראשוני של השירות
     if target == 'registration':
         service_data = {
             'manager_phone': MANAGER_PHONE,
             'email': EMAIL,
-            'connection_url': BASE_URL + "/rps_game", # הכתובת המלאה לשירות
+            'connection_url': BASE_URL + "/rps_game",
             'service_name': 'משחק אבן, נייר ומספריים',
             'brief_description': 'שירות המאפשר לשחק אבן, נייר ומספריים נגד המחשב.',
             'message': 'ברוכים הבאים למשחק אבן, נייר, מספריים. לחצו 1 לאבן, 2 לנייר, או 3 למספריים.',
+            'long_explanation': 'שירות זה מאפשר לכם לשחק את המשחק הקלאסי אבן, נייר ומספריים נגד המחשב. בצעו את בחירתכם והמערכת תגיב.', # <-- השורה החדשה
             'number_of_digits': 1,
             'phone_number_required': False,
         }
         return jsonify(service_data)
-
     # 2. שלב עיבוד השיחה עצמה
     if target == 'service_processing':
         # נקבל את הבחירה של השחקן
