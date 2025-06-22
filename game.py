@@ -6,10 +6,10 @@ app = Flask(__name__)
 # --- הגדרות בסיסיות של השירות ---
 # מומלץ למלא את הפרטים האמיתיים שלך כאן
 MANAGER_PHONE = "0500000000" # החלף למספר שלך
-EMAIL = "your.email@example.com" # החלף לאימייל שלך
+EMAIL = "x0583289789@gmail.com" # החלף לאימייל שלך
 # כתובת ה-URL שתקבל אחרי שתעלה את השרת לאוויר
 # כרגע נשאיר את זה ריק, נמלא בהמשך
-BASE_URL = "https://your-server-url.com" 
+BASE_URL = "https://aviel123.onrender.com/" 
 
 # --- הגדרות המשחק ---
 CHOICES = {
