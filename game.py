@@ -5,12 +5,26 @@ app = Flask(__name__)
 
 # --- הגדרות בסיסיות של השירות ---
 # מומלץ למלא את הפרטים האמיתיים שלך כאן
-MANAGER_PHONE = "0583289789" # החלף למספר שלך
-EMAIL = "x0583289789@gmail.com" # החלף לאימייל שלך
-# כתובת ה-URL שתקבל אחרי שתעלה את השרת לאוויר
-# כרגע נשאיר את זה ריק, נמלא בהמשך
-BASE_URL = "https://aviel123.onrender.com/" 
-
+manager_phone: 0583289789
+email: x0583289789@gmail.com
+connection_url: https://aviel123.onrender.com/game.com
+service_name: אבן נייר ומספריים
+brief_description: משחק אבן נייר ומספריים בטלפון
+audio_url: 0
+message: 0
+long_explanation: 0
+required_data_schema: 0
+number_of_digits: 1
+phone_number_required: True
+email_required: False
+credit_card_required: False
+system_payments: False
+external_payments: False
+entry_amount_to_be_paid: 0
+referral_phone: 0
+analysis_delay: False
+tracking_fields: 0
+returned_data: 0
 # --- הגדרות המשחק ---
 CHOICES = {
     '1': 'אבן',
