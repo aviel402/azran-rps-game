@@ -1,4 +1,0 @@
-
-"require": 
-    "AIzaSyCyt6InJVcsmoO1ELePN7OY2A8s8BIH0gI": "^0.2.0"
-
