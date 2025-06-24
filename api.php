@@ -1,115 +1,72 @@
 <?php
-// הגדרת סוג התוכן שיוחזר - תמיד JSON
-header('Content-Type: application/json');
+// virtual_friend_gemini.php (חינמי לחלוטין)
+require __DIR__ . '/vendor/autoload.php';
 
-// קבלת גוף הבקשה שנשלח ב-POST
-$input = file_get_contents('php://input');
-$data = json_decode($input, true);
+use Gemini\Laravel\Facades\Gemini;
 
-// בודקים אם קיימים נתונים והם תקינים
-if (!$data || !isset($data['target'])) {
-    // אם לא, מחזירים JSON ריק עם סטטוס 200 כדי לא להשעות את השירות
-    echo json_encode([]);
+// --- הגדרות ---
+$geminiApiKey = getenv('GOOGLE_API_KEY'); // קריאה ממשתנה סביבה ב-Render
+$sessionDir = '/var/data/sessions/'; // דיסק קשיח ב-Render
+
+// וידוא שהתיקייה קיימת
+if (!is_dir($sessionDir)) {
+    mkdir($sessionDir, 0777, true);
+}
+
+// "אישיות" ה-AI. אתה יכול לערוך אותה כרצונך.
+$system_prompt = "
+    אתה חבר וירטואלי קולי בשם 'אבי'. המטרה שלך היא להיות חבר טוב, אמפתי, סקרן ומעניין.
+    אתה מדבר עם אנשים דרך הטלפון. כללי התנהגות:
+    1. אל תזכיר שאתה מודל שפה או בינה מלאכותית. אתה 'אבי'.
+    2. תשובותיך צריכות להיות קצרות וקולחות, באורך של 2-3 משפטים, כדי להתאים לשיחה קולית.
+    3. תמיד תנסה לשאול שאלה בסוף התשובה שלך כדי להמשיך את השיחה.
+    4. השתמש בשפה יומיומית וידידותית בעברית.
+";
+
+// --- קבלת נתונים מימות המשיח ---
+$callId = $_REQUEST['ApiCallId'] ?? 'test_id';
+$userText = $_REQUEST['text'] ?? ''; // הטקסט מגיע ישירות ממודול ה-STT
+$sessionFile = $sessionDir . $callId . '.json';
+
+if (!$geminiApiKey) {
+    echo 'read=t-שגיאה, מפתח גוגל אי פי איי לא הוגדר בשרת.=,hangup';
     exit;
 }
 
-// קבלת הכתובת הדינמית מ-Render
-$baseUrl = $_SERVER['RENDER_EXTERNAL_URL'] ?? 'https://your-service-name.onrender.com';
-$connectionUrl = $baseUrl . '/api.php';
+// התחברות ל-Gemini
+$client = Gemini::client($geminiApiKey);
 
-
-// --- פונקציה לטיפול ברישום ---
-function handle_registration($connectionUrl) {
-    $registrationData = [
-        // פרטי מנהל
-        'manager_phone' => '0500000000', // <<< החלף במספר שלך
-        'email' => 'manager@example.com', // <<< החלף באימייל שלך
-        
-        // פרטי השירות
-        'connection_url' => $connectionUrl,
-        'service_name' => 'משחק אבן, נייר ומספריים (PHP)',
-        'brief_description' => 'שחקו אבן, נייר ומספריים נגד המחשב.',
-        'message' => 'שָׁלוֹם! בְּרוּכִים הַבָּאִים לְמִשְׂחַק אֶבֶן, נְיָר וּמִסְפָּרַיִם בגרסת הפי-אייץ-פי.',
-        
-        // דרישת נתונים וניהול מצב
-        'required_data_schema' => ['user_choice' => 'str'],
-        'returned_data' => [
-            'stage' => 'game_started',
-            'player_score' => 0,
-            'computer_score' => 0
-        ],
-
-        // פרמטרים נוספים חובה
-        'audio_url' => '', 'long_explanation' => '', 'number_of_digits' => 0,
-        'phone_number_required' => false, 'email_required' => false, 'credit_card_required' => false,
-        'system_payments' => false, 'external_payments' => false, 'entry_amount_to_be_paid' => 0,
-        'referral_phone' => '', 'analysis_delay' => false, 'tracking_fields' => []
-    ];
-    return $registrationData;
+// --- ניהול היסטוריית שיחה ---
+$history = [];
+if (file_exists($sessionFile)) {
+    $history = json_decode(file_get_contents($sessionFile), true) ?: [];
 }
 
+// הוספת ההודעה החדשה של המשתמש
+$history[] = ['role' => 'user', 'parts' => [['text' => $userText]]];
 
-// --- פונקציה לטיפול בתור במשחק ---
-function handle_game_turn($data) {
-    $validChoices = ["אבן", "נייר", "מספריים"];
-    
-    // קבלת מצב מהקריאה הקודמת
-    $state = $data['returned_data'] ?? ['player_score' => 0, 'computer_score' => 0];
-    $player_score = $state['player_score'];
-    $computer_score = $state['computer_score'];
-    
-    // קבלת בחירת המשתמש
-    $user_choice = $data['required_data']['user_choice'] ?? '';
-    
-    if (!in_array($user_choice, $validChoices)) {
-        $response_message = "לֹא הֵבַנְתִּי. אָנָא אִמְרוּ שׁוּב: אבן, נייר, או מספריים.";
-        $next_state = $state;
-    } else {
-        $computer_choice = $validChoices[array_rand($validChoices)];
-        
-        if ($user_choice == $computer_choice) {
-            $result_text = "תֵּיקוּ!";
-        } elseif (($user_choice == "אבן" && $computer_choice == "מספריים") || 
-                  ($user_choice == "נייר" && $computer_choice == "אבן") || 
-                  ($user_choice == "מספריים" && $computer_choice == "נייר")) {
-            $result_text = "נִיצַחְתֶּם!";
-            $player_score++;
-        } else {
-            $result_text = "הִפְסַדְתֶּם.";
-            $computer_score++;
-        }
-        
-        $score_text = "הַתּוֹצָאָה הִיא {$player_score} לָכֶם, וְ-{$computer_score} לִי.";
-        $prompt_text = "מָה הַבְּחִירָה הַבָּאָה שֶׁלָכֶם?";
-        $response_message = "אֲנִי בָּחַרְתִּי {$computer_choice}. {$result_text} {$score_text} {$prompt_text}";
-        
-        $next_state = [
-            'stage' => 'in_game',
-            'player_score' => $player_score,
-            'computer_score' => $computer_score
-        ];
-    }
-    
-    return [
-        'message' => $response_message,
-        'required_data_schema' => ['user_choice' => 'str'],
-        'returned_data' => $next_state
-    ];
+// --- בניית הבקשה ל-Gemini ושליחתה ---
+try {
+    $chat = $client->geminiPro()->startChat($history);
+    $response = $chat->sendMessage($userText); // Gemini זוכר את ההיסטוריה בעצמו
+    $aiTextResponse = $response->text();
+
+} catch (Exception $e) {
+    echo 'read=t-אני צריך רגע לחשוב, תן לי שניה.=,hangup';
+    exit;
 }
 
+// הוספת תשובת ה-AI להיסטוריה ושמירתה בקובץ
+$history[] = ['role' => 'model', 'parts' => [['text' => $aiTextResponse]]];
+file_put_contents($sessionFile, json_encode($history));
 
-// --- ניתוב הבקשה הראשי ---
-$response = [];
-switch ($data['target']) {
-    case 'registration':
-        $response = handle_registration($connectionUrl);
-        break;
-    case 'service_processing':
-        $response = handle_game_turn($data);
-        break;
-}
+// --- החזרת פקודה לימות המשיח כדי ליצור לופ של שיחה ---
+$sanitizedResponse = str_replace(['"', "'", '`'], '', $aiTextResponse);
 
-// החזרת התגובה כ-JSON
-echo json_encode($response, JSON_UNESCAPED_UNICODE);
+// **זה החלק החשוב:** אחרי שהמערכת מקריאה את התשובה, היא חוזרת לאותה שלוחה
+// כדי להפעיל מחדש את ההאזנה וה-STT, ובכך ליצור שיחה מתמשכת.
+// שנה את "10" למספר השלוחה שלך.
+$ivr_command = "read=t-{$sanitizedResponse}=,go_to_folder,/10"; 
 
+echo $ivr_command;
 ?>
