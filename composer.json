@@ -1,4 +1,5 @@
 {
-    "name": "hazran/rock-paper-scissors-php",
-    "description": "A Rock, Paper, Scissors game for Hazran Free Arena using PHP on Render."
+    "require": {
+        "google-gemini-php/client": "^0.2.0"
+    }
 }
